@@ -122,7 +122,9 @@ export class WebviewPanel {
                 databasesHtml += `
                     <div class="connection-group">
                         <div class="connection-header">
-                            <div class="connection-icon">🔌</div>
+                            <svg class="connection-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
                             <div class="connection-info">
                                 <h2>${this.escapeHtml(config.name)}</h2>
                                 <p class="connection-details">${this.escapeHtml(config.user)}@${this.escapeHtml(config.host)}:${config.port}</p>
@@ -133,25 +135,33 @@ export class WebviewPanel {
                                 <div class="database-item" data-connection-id="${this.escapeHtml(config.id)}" data-database-name="${this.escapeHtml(db.name)}">
                                     <div class="database-header-row">
                                         <div class="database-left">
-                                            <span class="expand-icon">▶</span>
-                                            <div class="database-icon">🗄️</div>
+                                            <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="9 18 15 12 9 6"/>
+                                            </svg>
+                                            <svg class="database-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                                            </svg>
                                             <div class="database-name">${this.escapeHtml(db.name)}</div>
                                         </div>
-                                        <div class="badge">Click to expand</div>
+                                        <span class="badge">Expand</span>
                                     </div>
                                     <div class="tables-container">
-                                    <div class="tables-container">
-                                            <div class="filter-wrapper">
-                                                <input 
-                                                    type="text" 
-                                                    class="table-filter" 
-                                                    placeholder="🔍 Filter tables..." 
-                                                    data-connection-id="${this.escapeHtml(config.id)}" 
-                                                    data-database-name="${this.escapeHtml(db.name)}"
-                                                />
-                                            </div>
-                                            <div class="loading">Loading tables...</div>
+                                        <div class="filter-wrapper">
+                                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="11" cy="11" r="8"/>
+                                                <path d="m21 21-4.35-4.35"/>
+                                            </svg>
+                                            <input 
+                                                type="text" 
+                                                class="table-filter" 
+                                                placeholder="Filter tables..." 
+                                                data-connection-id="${this.escapeHtml(config.id)}" 
+                                                data-database-name="${this.escapeHtml(db.name)}"
+                                            />
                                         </div>
+                                        <div class="loading">Loading tables...</div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -162,7 +172,11 @@ export class WebviewPanel {
                 databasesHtml += `
                     <div class="connection-group error">
                         <div class="connection-header">
-                            <div class="connection-icon">⚠️</div>
+                            <svg class="connection-icon error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
                             <div class="connection-info">
                                 <h2>${this.escapeHtml(config.name)}</h2>
                                 <p class="error-message">Failed to connect: ${this.escapeHtml(error instanceof Error ? error.message : String(error))}</p>
@@ -176,7 +190,10 @@ export class WebviewPanel {
         if (configs.length === 0) {
             databasesHtml = `
                 <div class="empty-state">
-                    <div class="empty-icon">🔍</div>
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
                     <h2>No connections configured</h2>
                     <p>Add a MySQL connection to get started</p>
                 </div>
@@ -214,30 +231,33 @@ export class WebviewPanel {
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 24px;
             background: var(--vscode-editor-background);
             color: var(--vscode-editor-foreground);
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
         h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 600;
-            margin-bottom: 24px;
+            margin-bottom: 32px;
             color: var(--vscode-foreground);
+            letter-spacing: -0.02em;
         }
 
+        /* ==================== CONNECTION GROUP ==================== */
         .connection-group {
-            background: var(--vscode-sideBar-background);
+            background: var(--vscode-editor-background);
             border: 1px solid var(--vscode-panel-border);
             border-radius: 8px;
-            padding: 20px;
             margin-bottom: 24px;
+            overflow: hidden;
         }
 
         .connection-group.error {
@@ -247,49 +267,60 @@ export class WebviewPanel {
         .connection-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-            padding-bottom: 16px;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--vscode-sideBar-background);
             border-bottom: 1px solid var(--vscode-panel-border);
         }
 
         .connection-icon {
-            font-size: 24px;
+            width: 20px;
+            height: 20px;
+            color: var(--vscode-foreground);
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+
+        .connection-icon.error-icon {
+            color: var(--vscode-errorForeground);
         }
 
         .connection-info h2 {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
+            color: var(--vscode-foreground);
         }
 
         .connection-details {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--vscode-descriptionForeground);
-            font-family: 'Courier New', monospace;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            letter-spacing: 0.01em;
         }
 
         .error-message {
             color: var(--vscode-errorForeground);
-            font-size: 13px;
+            font-size: 12px;
         }
 
+        /* ==================== DATABASES LIST ==================== */
         .databases-list {
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
         }
 
         .database-item {
-            background: var(--vscode-editor-background);
+            background: var(--vscode-sideBar-background);
             border: 1px solid var(--vscode-panel-border);
             border-radius: 6px;
             overflow: hidden;
-            transition: border-color 0.2s ease;
+            transition: all 0.2s ease;
         }
 
-        /* Solo aplicar hover al header, no al contenedor completo */
-        .database-item:has(.database-header-row:hover):not(:has(.table-card:hover)) {
+        .database-item:hover {
             border-color: var(--vscode-focusBorder);
         }
 
@@ -297,9 +328,10 @@ export class WebviewPanel {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 16px;
+            padding: 14px 16px;
             cursor: pointer;
             user-select: none;
+            transition: background 0.15s ease;
         }
 
         .database-header-row:hover {
@@ -313,9 +345,12 @@ export class WebviewPanel {
         }
 
         .expand-icon {
-            font-size: 12px;
-            transition: transform 0.2s ease;
+            width: 14px;
+            height: 14px;
             color: var(--vscode-descriptionForeground);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            pointer-events: none;
         }
 
         .database-item.expanded .expand-icon {
@@ -323,73 +358,125 @@ export class WebviewPanel {
         }
 
         .database-icon {
-            font-size: 20px;
+            width: 18px;
+            height: 18px;
+            color: var(--vscode-symbolIcon-classForeground);
+            flex-shrink: 0;
+            pointer-events: none;
         }
 
         .database-name {
             font-size: 14px;
             font-weight: 500;
+            color: var(--vscode-foreground);
         }
 
         .badge {
-            font-size: 11px;
-            padding: 4px 8px;
+            font-size: 10px;
+            padding: 4px 10px;
             background: var(--vscode-badge-background);
             color: var(--vscode-badge-foreground);
-            border-radius: 12px;
+            border-radius: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .database-item.expanded .badge {
             display: none;
         }
 
+        /* ==================== TABLES CONTAINER ==================== */
         .tables-container {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .loading {
-            padding: 16px;
-            text-align: center;
-            color: var(--vscode-descriptionForeground);
-            font-size: 13px;
-        }
-
-        .tables-grid {
-            padding: 12px 16px 16px 16px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 8px;
+        .database-item.expanded .tables-container {
+            max-height: 600px;
             overflow-y: auto;
-            overflow-x: auto;
+            overflow-x: hidden;
         }
 
-        .table-card {
-            background: var(--vscode-sideBar-background);
-            border: 1px solid var(--vscode-panel-border);
+        /* Filter */
+        .filter-wrapper {
+            padding: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            background: var(--vscode-editor-background);
+            display: none;
+            position: relative;
+        }
+
+        .database-item.expanded .filter-wrapper {
+            display: block;
+        }
+
+        .search-icon {
+            width: 14px;
+            height: 14px;
+            color: var(--vscode-descriptionForeground);
+            position: absolute;
+            left: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .table-filter {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
             border-radius: 4px;
-            overflow: hidden;
-            transition: border-color 0.3s ease;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s ease;
         }
 
-        /* Solo aplicar hover cuando está directamente sobre la tabla */
-        .table-card:hover {
+        .table-filter:focus {
             border-color: var(--vscode-focusBorder);
         }
 
-        /* Cuando la tabla está expandida, ocupa todo el ancho */
+        .table-filter::placeholder {
+            color: var(--vscode-input-placeholderForeground);
+        }
+
+        /* Tables Grid */
+        .tables-grid {
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        /* ==================== TABLE CARD ==================== */
+        .table-card {
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .table-card:hover {
+            border-color: var(--vscode-focusBorder);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
         .table-card.expanded {
             grid-column: 1 / -1;
         }
 
         .table-card-header {
-            padding: 10px 12px;
+            padding: 12px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
             user-select: none;
+            transition: background 0.15s ease;
         }
 
         .table-card-header:hover {
@@ -399,13 +486,17 @@ export class WebviewPanel {
         .table-card-left {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            min-width: 0;
         }
 
         .table-expand-icon {
-            font-size: 10px;
-            transition: transform 0.2s ease;
+            width: 12px;
+            height: 12px;
             color: var(--vscode-descriptionForeground);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            pointer-events: none;
         }
 
         .table-card.expanded .table-expand-icon {
@@ -413,7 +504,11 @@ export class WebviewPanel {
         }
 
         .table-icon {
-            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            color: var(--vscode-symbolIcon-fileForeground);
+            flex-shrink: 0;
+            pointer-events: none;
         }
 
         .table-name {
@@ -422,79 +517,95 @@ export class WebviewPanel {
             white-space: nowrap;
             font-size: 13px;
             font-weight: 500;
+            color: var(--vscode-foreground);
         }
 
+        /* ==================== COLUMNS CONTAINER ==================== */
         .columns-container {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
             opacity: 0;
         }
 
         .table-card.expanded .columns-container {
-            max-height: 300px;
-            height: auto;
+            max-height: 400px;
             overflow-y: auto;
-            overflow-x: auto;
+            overflow-x: hidden;
             opacity: 1;
-            display: block;
         }
 
-        /* Scrollbar personalizado para el contenedor de columnas */
-        .table-card.expanded .columns-container::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
+        /* Custom Scrollbar */
+        .tables-container::-webkit-scrollbar,
+        .columns-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
 
-        .table-card.expanded .columns-container::-webkit-scrollbar-track {
+        .tables-container::-webkit-scrollbar-track,
+        .columns-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tables-container::-webkit-scrollbar-thumb,
+        .columns-container::-webkit-scrollbar-thumb {
             background: var(--vscode-scrollbarSlider-background);
             border-radius: 4px;
         }
 
-        .table-card.expanded .columns-container::-webkit-scrollbar-thumb {
+        .tables-container::-webkit-scrollbar-thumb:hover,
+        .columns-container::-webkit-scrollbar-thumb:hover {
             background: var(--vscode-scrollbarSlider-hoverBackground);
-            border-radius: 4px;
         }
 
-        .table-card.expanded .columns-container::-webkit-scrollbar-thumb:hover {
-            background: var(--vscode-scrollbarSlider-activeBackground);
-        }
-
+        /* Column Filter */
         .column-filter-wrapper {
-            padding: 8px 12px;
+            padding: 12px 16px;
             border-bottom: 1px solid var(--vscode-panel-border);
             background: var(--vscode-editor-background);
+            position: relative;
+        }
+
+        .column-filter-wrapper .search-icon {
+            left: 28px;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         .column-filter {
             width: 100%;
-            padding: 5px 8px;
+            padding: 6px 10px 6px 32px;
             background: var(--vscode-input-background);
             color: var(--vscode-input-foreground);
             border: 1px solid var(--vscode-input-border);
-            border-radius: 3px;
+            border-radius: 4px;
             font-size: 12px;
             outline: none;
+            transition: border-color 0.15s ease;
         }
 
         .column-filter:focus {
             border-color: var(--vscode-focusBorder);
         }
 
+        .column-filter::placeholder {
+            color: var(--vscode-input-placeholderForeground);
+        }
+
+        /* ==================== COLUMNS LIST ==================== */
         .columns-list {
-            padding: 8px;
+            padding: 16px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 10px;
         }
 
         .column-item {
-            background: var(--vscode-editor-background);
+            background: var(--vscode-sideBar-background);
             border: 1px solid var(--vscode-panel-border);
-            border-radius: 3px;
-            padding: 10px;
-            font-size: 12px;
-            transition: all 0.2s ease;
+            border-radius: 4px;
+            padding: 12px;
+            transition: all 0.15s ease;
         }
 
         .column-item:hover {
@@ -504,14 +615,16 @@ export class WebviewPanel {
 
         .column-name {
             font-weight: 600;
+            font-size: 13px;
             color: var(--vscode-symbolIcon-fieldForeground);
-            margin-bottom: 4px;
+            margin-bottom: 8px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
         }
 
         .column-details {
             display: grid;
             grid-template-columns: auto 1fr;
-            gap: 4px 8px;
+            gap: 6px 12px;
             font-size: 11px;
             color: var(--vscode-descriptionForeground);
         }
@@ -519,32 +632,47 @@ export class WebviewPanel {
         .column-label {
             font-weight: 500;
             color: var(--vscode-foreground);
+            opacity: 0.8;
         }
 
         .column-value {
-            font-family: 'Courier New', monospace;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            color: var(--vscode-descriptionForeground);
         }
 
         .column-value.key {
             color: var(--vscode-symbolIcon-keywordForeground);
+            font-weight: 500;
         }
 
         .column-value.type {
             color: var(--vscode-symbolIcon-typeForeground);
         }
 
+        /* ==================== LOADING & EMPTY STATE ==================== */
+        .loading {
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            font-size: 13px;
+        }
+
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
         }
 
         .empty-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
+            width: 48px;
+            height: 48px;
+            color: var(--vscode-descriptionForeground);
+            margin: 0 auto 20px;
+            opacity: 0.5;
         }
 
         .empty-state h2 {
-            font-size: 20px;
+            font-size: 18px;
+            font-weight: 600;
             margin-bottom: 8px;
             color: var(--vscode-foreground);
         }
@@ -553,244 +681,232 @@ export class WebviewPanel {
             color: var(--vscode-descriptionForeground);
             font-size: 14px;
         }
-
-        /* Filter */
-        .filter-wrapper {
-            padding: 12px 16px 8px 16px;
-            border-bottom: 1px solid var(--vscode-panel-border);
-            display: none;
-        }
-
-        .database-item.expanded .filter-wrapper {
-            display: block;
-        }
-
-        .table-filter {
-            width: 100%;
-            padding: 6px 10px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            font-size: 13px;
-            outline: none;
-        }
-
-        .table-filter:focus {
-            border-color: var(--vscode-focusBorder);
-        }
-
-        .database-item.expanded .tables-container {
-            max-height: 400px; /* Altura fija para el overflow */
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .tables-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .tables-container::-webkit-scrollbar-track {
-            background: var(--vscode-scrollbarSlider-background);
-        }
-
-        .tables-container::-webkit-scrollbar-thumb {
-            background: var(--vscode-scrollbarSlider-hoverBackground);
-            border-radius: 4px;
-        }
     </style>`;
     }
 
     private getScript(): string {
         return `<script>
-        const vscode = acquireVsCodeApi();
-        const loadedDatabases = new Map();
-        const loadedTables = new Map();
+        (function() {
+            const vscode = acquireVsCodeApi();
+            const loadedDatabases = new Map();
+            const loadedTables = new Map();
 
-        // Database expansion
-        document.querySelectorAll('.database-item').forEach(item => {
-            const header = item.querySelector('.database-header-row');
-            
-            header.addEventListener('click', async () => {
-                const connectionId = item.dataset.connectionId;
-                const databaseName = item.dataset.databaseName;
-                const isExpanded = item.classList.contains('expanded');
+            // Wait for DOM to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeEventListeners);
+            } else {
+                initializeEventListeners();
+            }
 
-                if (isExpanded) {
-                    item.classList.remove('expanded');
-                } else {
-                    item.classList.add('expanded');
-                    
-                    const key = connectionId + '::' + databaseName;
-                    if (!loadedDatabases.has(key)) {
-                        vscode.postMessage({
-                            command: 'getTables',
-                            connectionId: connectionId,
-                            databaseName: databaseName
-                        });
-                        loadedDatabases.set(key, true);
-                    }
-                }
-            });
-        });
-
-        // Event delegation for table filtering
-        document.addEventListener('input', (e) => {
-            // Table filter
-            if (e.target.classList.contains('table-filter')) {
-                const filterValue = e.target.value.toLowerCase();
-                const connectionId = e.target.dataset.connectionId;
-                const databaseName = e.target.dataset.databaseName;
+            function initializeEventListeners() {
+                console.log('Initializing database expansion listeners...');
                 
-                const dbItem = document.querySelector(\`.database-item[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"]\`);
-                if (dbItem) {
-                    const tables = dbItem.querySelectorAll('.table-card');
-                    tables.forEach(table => {
-                        const tableName = table.querySelector('.table-name').textContent.toLowerCase();
-                        if (tableName.includes(filterValue)) {
-                            table.style.display = 'block';
+                // Database expansion
+                document.querySelectorAll('.database-item').forEach(item => {
+                    const header = item.querySelector('.database-header-row');
+                    
+                    if (!header) {
+                        console.error('No header found for database item:', item);
+                        return;
+                    }
+                    
+                    header.addEventListener('click', async () => {
+                        const connectionId = item.dataset.connectionId;
+                        const databaseName = item.dataset.databaseName;
+                        const isExpanded = item.classList.contains('expanded');
+
+                        console.log('Database clicked:', databaseName, 'Expanded:', isExpanded);
+
+                        if (isExpanded) {
+                            item.classList.remove('expanded');
                         } else {
-                            table.style.display = 'none';
+                            item.classList.add('expanded');
+                            
+                            const key = connectionId + '::' + databaseName;
+                            if (!loadedDatabases.has(key)) {
+                                console.log('Loading tables for:', databaseName);
+                                vscode.postMessage({
+                                    command: 'getTables',
+                                    connectionId: connectionId,
+                                    databaseName: databaseName
+                                });
+                                loadedDatabases.set(key, true);
+                            }
                         }
                     });
-                }
-            }
-            
-            // Column filter
-            if (e.target.classList.contains('column-filter')) {
-                const filterValue = e.target.value.toLowerCase();
-                const tableCard = e.target.closest('.table-card');
-                if (tableCard) {
-                    const columns = tableCard.querySelectorAll('.column-item');
-                    columns.forEach(column => {
-                        const columnName = column.querySelector('.column-name').textContent.toLowerCase();
-                        if (columnName.includes(filterValue)) {
-                            column.style.display = 'block';
-                        } else {
-                            column.style.display = 'none';
+                });
+
+                console.log('Found', document.querySelectorAll('.database-item').length, 'database items');
+
+                // Event delegation for table filtering
+                document.addEventListener('input', (e) => {
+                    // Table filter
+                    if (e.target.classList.contains('table-filter')) {
+                        const filterValue = e.target.value.toLowerCase();
+                        const connectionId = e.target.dataset.connectionId;
+                        const databaseName = e.target.dataset.databaseName;
+                        
+                        const dbItem = document.querySelector(\`.database-item[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"]\`);
+                        if (dbItem) {
+                            const tables = dbItem.querySelectorAll('.table-card');
+                            tables.forEach(table => {
+                                const tableName = table.querySelector('.table-name').textContent.toLowerCase();
+                                if (tableName.includes(filterValue)) {
+                                    table.style.display = 'block';
+                                } else {
+                                    table.style.display = 'none';
+                                }
+                            });
                         }
-                    });
-                }
-            }
-        });
-
-        // Event delegation for table card clicks
-        document.addEventListener('click', (e) => {
-            const tableHeader = e.target.closest('.table-card-header');
-            if (tableHeader) {
-                const tableCard = tableHeader.closest('.table-card');
-                const connectionId = tableCard.dataset.connectionId;
-                const databaseName = tableCard.dataset.databaseName;
-                const tableName = tableCard.dataset.tableName;
-                const isExpanded = tableCard.classList.contains('expanded');
-
-                if (isExpanded) {
-                    tableCard.classList.remove('expanded');
-                } else {
-                    tableCard.classList.add('expanded');
-                    
-                    const key = connectionId + '::' + databaseName + '::' + tableName;
-                    if (!loadedTables.has(key)) {
-                        vscode.postMessage({
-                            command: 'getColumns',
-                            connectionId: connectionId,
-                            databaseName: databaseName,
-                            tableName: tableName
-                        });
-                        loadedTables.set(key, true);
                     }
-                }
-            }
-        });
-
-        window.addEventListener('message', event => {
-            const message = event.data;
-            
-            if (message.command === 'tablesData') {
-                const { connectionId, databaseName, tables } = message;
-                
-                const dbItem = document.querySelector(\`.database-item[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"]\`);
-                
-                if (dbItem) {
-                    const container = dbItem.querySelector('.tables-container');
-                    const filterWrapper = container.querySelector('.filter-wrapper');
                     
-                    if (tables.length === 0) {
-                        container.innerHTML = filterWrapper.outerHTML + '<div class="loading">No tables found</div>';
-                    } else {
-                        const tablesHtml = tables.map(table => \`
-                            <div class="table-card" 
-                                 data-connection-id="\${connectionId}" 
-                                 data-database-name="\${databaseName}" 
-                                 data-table-name="\${table.name}">
-                                <div class="table-card-header">
-                                    <div class="table-card-left">
-                                        <span class="table-expand-icon">▶</span>
-                                        <div class="table-icon">📋</div>
-                                        <div class="table-name">\${table.name}</div>
+                    // Column filter
+                    if (e.target.classList.contains('column-filter')) {
+                        const filterValue = e.target.value.toLowerCase();
+                        const tableCard = e.target.closest('.table-card');
+                        if (tableCard) {
+                            const columns = tableCard.querySelectorAll('.column-item');
+                            columns.forEach(column => {
+                                const columnName = column.querySelector('.column-name').textContent.toLowerCase();
+                                if (columnName.includes(filterValue)) {
+                                    column.style.display = 'block';
+                                } else {
+                                    column.style.display = 'none';
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // Event delegation for table card clicks
+                document.addEventListener('click', (e) => {
+                    const tableHeader = e.target.closest('.table-card-header');
+                    if (tableHeader) {
+                        const tableCard = tableHeader.closest('.table-card');
+                        const connectionId = tableCard.dataset.connectionId;
+                        const databaseName = tableCard.dataset.databaseName;
+                        const tableName = tableCard.dataset.tableName;
+                        const isExpanded = tableCard.classList.contains('expanded');
+
+                        if (isExpanded) {
+                            tableCard.classList.remove('expanded');
+                        } else {
+                            tableCard.classList.add('expanded');
+                            
+                            const key = connectionId + '::' + databaseName + '::' + tableName;
+                            if (!loadedTables.has(key)) {
+                                vscode.postMessage({
+                                    command: 'getColumns',
+                                    connectionId: connectionId,
+                                    databaseName: databaseName,
+                                    tableName: tableName
+                                });
+                                loadedTables.set(key, true);
+                            }
+                        }
+                    }
+                });
+
+                // Message handler
+                window.addEventListener('message', event => {
+                    const message = event.data;
+                    
+                    if (message.command === 'tablesData') {
+                        const { connectionId, databaseName, tables } = message;
+                        
+                        const dbItem = document.querySelector(\`.database-item[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"]\`);
+                        
+                        if (dbItem) {
+                            const container = dbItem.querySelector('.tables-container');
+                            const filterWrapper = container.querySelector('.filter-wrapper');
+                            
+                            if (tables.length === 0) {
+                                container.innerHTML = filterWrapper.outerHTML + '<div class="loading">No tables found</div>';
+                            } else {
+                                const tablesHtml = tables.map(table => \`
+                                    <div class="table-card" 
+                                         data-connection-id="\${connectionId}" 
+                                         data-database-name="\${databaseName}" 
+                                         data-table-name="\${table.name}">
+                                        <div class="table-card-header">
+                                            <div class="table-card-left">
+                                                <svg class="table-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="9 18 15 12 9 6"/>
+                                                </svg>
+                                                <svg class="table-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                    <line x1="3" y1="9" x2="21" y2="9"/>
+                                                    <line x1="9" y1="21" x2="9" y2="9"/>
+                                                </svg>
+                                                <div class="table-name">\${table.name}</div>
+                                            </div>
+                                        </div>
+                                        <div class="columns-container">
+                                            <div class="loading">Loading columns...</div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="columns-container">
-                                    <div class="loading">Loading columns...</div>
-                                </div>
-                            </div>
-                        \`).join('');
-                        
-                        container.innerHTML = filterWrapper.outerHTML + '<div class="tables-grid">' + tablesHtml + '</div>';
+                                \`).join('');
+                                
+                                container.innerHTML = filterWrapper.outerHTML + '<div class="tables-grid">' + tablesHtml + '</div>';
+                            }
+                        }
                     }
-                }
-            }
-            
-            if (message.command === 'columnsData') {
-                const { connectionId, databaseName, tableName, columns } = message;
-                
-                const tableCard = document.querySelector(\`.table-card[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"][data-table-name="\${tableName}"]\`);
-                
-                if (tableCard) {
-                    const columnsContainer = tableCard.querySelector('.columns-container');
                     
-                    if (columns.length === 0) {
-                        columnsContainer.innerHTML = '<div class="loading">No columns found</div>';
-                    } else {
-                        const columnsHtml = columns.map(col => \`
-                            <div class="column-item">
-                                <div class="column-name">\${col.name}</div>
-                                <div class="column-details">
-                                    <span class="column-label">Type:</span>
-                                    <span class="column-value type">\${col.type}</span>
-                                    
-                                    <span class="column-label">Nullable:</span>
-                                    <span class="column-value">\${col.nullable}</span>
-                                    
-                                    <span class="column-label">Key:</span>
-                                    <span class="column-value key">\${col.key || '-'}</span>
-                                    
-                                    <span class="column-label">Default:</span>
-                                    <span class="column-value">\${col.default !== null ? col.default : 'NULL'}</span>
-                                    
-                                    <span class="column-label">Extra:</span>
-                                    <span class="column-value">\${col.extra || '-'}</span>
-                                </div>
-                            </div>
-                        \`).join('');
+                    if (message.command === 'columnsData') {
+                        const { connectionId, databaseName, tableName, columns } = message;
                         
-                        columnsContainer.innerHTML = \`
-                            <div class="column-filter-wrapper">
-                                <input 
-                                    type="text" 
-                                    class="column-filter" 
-                                    placeholder="🔍 Filter columns..."
-                                />
-                            </div>
-                            <div class="columns-list">
-                                \${columnsHtml}
-                            </div>
-                        \`;
+                        const tableCard = document.querySelector(\`.table-card[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"][data-table-name="\${tableName}"]\`);
+                        
+                        if (tableCard) {
+                            const columnsContainer = tableCard.querySelector('.columns-container');
+                            
+                            if (columns.length === 0) {
+                                columnsContainer.innerHTML = '<div class="loading">No columns found</div>';
+                            } else {
+                                const columnsHtml = columns.map(col => \`
+                                    <div class="column-item">
+                                        <div class="column-name">\${col.name}</div>
+                                        <div class="column-details">
+                                            <span class="column-label">Type:</span>
+                                            <span class="column-value type">\${col.type}</span>
+                                            
+                                            <span class="column-label">Nullable:</span>
+                                            <span class="column-value">\${col.nullable}</span>
+                                            
+                                            <span class="column-label">Key:</span>
+                                            <span class="column-value key">\${col.key || '-'}</span>
+                                            
+                                            <span class="column-label">Default:</span>
+                                            <span class="column-value">\${col.default !== null ? col.default : 'NULL'}</span>
+                                            
+                                            <span class="column-label">Extra:</span>
+                                            <span class="column-value">\${col.extra || '-'}</span>
+                                        </div>
+                                    </div>
+                                \`).join('');
+                                
+                                columnsContainer.innerHTML = \`
+                                    <div class="column-filter-wrapper">
+                                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="11" cy="11" r="8"/>
+                                            <path d="m21 21-4.35-4.35"/>
+                                        </svg>
+                                        <input 
+                                            type="text" 
+                                            class="column-filter" 
+                                            placeholder="Filter columns..."
+                                        />
+                                    </div>
+                                    <div class="columns-list">
+                                        \${columnsHtml}
+                                    </div>
+                                \`;
+                            }
+                        }
                     }
-                }
+                });
             }
-        });
+        })(); // Close IIFE
     </script>`;
     }
 
