@@ -3,7 +3,12 @@
 src/**
 .gitignore
 tsconfig.json
-node_modules/**
+# Exclude dev dependencies only
+node_modules/@types/**
+node_modules/@typescript-eslint/**
+node_modules/eslint/**
+node_modules/eslint-*/**
+node_modules/typescript/**
 *.ts
 **/*.map
 .git/**

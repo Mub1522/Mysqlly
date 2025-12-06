@@ -1,15 +1,16 @@
-<div align="center">
-  <img src="assets/logo.jpeg" alt="Mysqlly Logo" width="200"/>
-  
-  # Mysqlly
-  
-  **A modern, elegant MySQL database explorer for Visual Studio Code**
-  
-  [![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/Mub1522/mysqlly)
-  [![VSCode](https://img.shields.io/badge/VSCode-1.80.0+-0078d7.svg)](https://code.visualstudio.com/)
-  [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-  
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Mub1522/mysqlly/main/assets/logo.jpeg" alt="Mysqlly Logo" width="200"/>
+</p>
+
+<h1 align="center">Mysqlly</h1>
+
+<p align="center"><strong>A modern, elegant MySQL database explorer for Visual Studio Code</strong></p>
+
+<p align="center">
+  <a href="https://github.com/Mub1522/mysqlly"><img src="https://img.shields.io/badge/version-0.0.1-blue.svg" alt="Version"/></a>
+  <a href="https://code.visualstudio.com/"><img src="https://img.shields.io/badge/VSCode-1.80.0+-0078d7.svg" alt="VSCode"/></a>
+  <a href="https://github.com/Mub1522/mysqlly/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"/></a>
+</p>
 
 ---
 
@@ -83,23 +84,23 @@
 ### Connection Management
 The sidebar provides quick access to all your MySQL connections with intuitive controls.
 
-<div align="center">
-  <img src="assets/sidebar.png" alt="Mysqlly Logo" width="400"/>
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Mub1522/mysqlly/main/assets/sidebar.png" alt="Connection Management" width="600"/>
+</p>
 
 ### Database Explorer
 Explore your database schema with a beautiful, modern interface that adapts to your VSCode theme.
 
-<div align="center">
-  <img src="assets/explorer_databases.png" alt="Mysqlly Logo" width="400"/>
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Mub1522/mysqlly/main/assets/explorer_databases.png" alt="Database Explorer" width="600"/>
+</p>
 
 ### Table Schema View
 View detailed column information with clear typography and organized layout.
 
-<div align="center">
-  <img src="assets/explorer_tables.png" alt="Mysqlly Logo" width="400"/>
-</div>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Mub1522/mysqlly/main/assets/explorer_tables.png" alt="Table Schema" width="600"/>
+</p>
 
 ---
 
@@ -190,6 +191,4 @@ If you find this extension helpful, please consider:
 
 ---
 
-<div align="center">
-  Made with ❤️ for the developer community
-</div>
+<p align="center">Made with ❤️ for the developer community</p>
