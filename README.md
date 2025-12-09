@@ -7,7 +7,7 @@
 <p align="center"><strong>A modern, elegant MySQL database explorer for Visual Studio Code</strong></p>
 
 <p align="center">
-  <a href="https://github.com/Mub1522/mysqlly"><img src="https://img.shields.io/badge/version-0.0.1-blue.svg" alt="Version"/></a>
+  <a href="https://github.com/Mub1522/mysqlly"><img src="https://img.shields.io/badge/version-0.0.3-blue.svg" alt="Version"/></a>
   <a href="https://code.visualstudio.com/"><img src="https://img.shields.io/badge/VSCode-1.80.0+-0078d7.svg" alt="VSCode"/></a>
   <a href="https://github.com/Mub1522/mysqlly/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"/></a>
 </p>
