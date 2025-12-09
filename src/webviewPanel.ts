@@ -1,15 +1,20 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { DatabaseInfo, MySQLConnectionManager } from './mysqlConnection';
 
 export class WebviewPanel {
     private static currentPanel: WebviewPanel | undefined;
     private readonly panel: vscode.WebviewPanel;
+    private readonly extensionUri: vscode.Uri;
     private disposables: vscode.Disposable[] = [];
 
     private constructor(
         panel: vscode.WebviewPanel,
+        extensionUri: vscode.Uri,
         private connectionManager: MySQLConnectionManager
     ) {
+        this.extensionUri = extensionUri;
         this.panel = panel;
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
@@ -20,6 +25,8 @@ export class WebviewPanel {
                     await this.handleGetTables(message.connectionId, message.databaseName);
                 } else if (message.command === 'getColumns') {
                     await this.handleGetColumns(message.connectionId, message.databaseName, message.tableName);
+                } else if (message.command === 'getTableData') {
+                    await this.handleGetTableData(message.connectionId, message.databaseName, message.tableName, message.page || 0);
                 }
             },
             null,
@@ -49,11 +56,12 @@ export class WebviewPanel {
             column || vscode.ViewColumn.One,
             {
                 enableScripts: true,
-                retainContextWhenHidden: true
+                retainContextWhenHidden: true,
+                localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'src', 'webview')]
             }
         );
 
-        WebviewPanel.currentPanel = new WebviewPanel(panel, connectionManager);
+        WebviewPanel.currentPanel = new WebviewPanel(panel, extensionUri, connectionManager);
     }
 
     // 📬 Handle request for tables from webview
@@ -106,6 +114,51 @@ export class WebviewPanel {
         }
     }
 
+    // 📬 Handle request for table data with pagination
+    private async handleGetTableData(connectionId: string, databaseName: string, tableName: string, page: number) {
+        try {
+            const pageSize = 25;
+            const offset = page * pageSize;
+            const connection = await this.connectionManager.getConnection(connectionId);
+            await connection.query(`USE \`${databaseName}\``);
+
+            // Get total count
+            const [countResult] = await connection.query(`SELECT COUNT(*) as total FROM \`${tableName}\``);
+            const totalRows = (countResult as any[])[0]?.total || 0;
+
+            // Get paginated data
+            const [rows] = await connection.query(`SELECT * FROM \`${tableName}\` LIMIT ${pageSize} OFFSET ${offset}`);
+
+            // Get column names
+            const columns = (rows as any[]).length > 0 ? Object.keys((rows as any[])[0]) : [];
+
+            // Send data back to webview
+            this.panel.webview.postMessage({
+                command: 'tableData',
+                connectionId,
+                databaseName,
+                tableName,
+                rows,
+                columns,
+                page,
+                pageSize,
+                totalRows,
+                totalPages: Math.ceil(totalRows / pageSize)
+            });
+        } catch (error) {
+            // Send error back to webview
+            this.panel.webview.postMessage({
+                command: 'tableData',
+                connectionId,
+                databaseName,
+                tableName,
+                rows: [],
+                columns: [],
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
+    }
+
     private async update() {
         this.panel.webview.html = await this.getHtmlContent();
     }
@@ -134,7 +187,7 @@ export class WebviewPanel {
                             ${databases.map(db => `
                                 <div class="database-item" data-connection-id="${this.escapeHtml(config.id)}" data-database-name="${this.escapeHtml(db.name)}">
                                     <div class="database-header-row">
-                                        <div class="database-left">
+                                        <div class="database-left"> 
                                             <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <polyline points="9 18 15 12 9 6"/>
                                             </svg>
@@ -145,7 +198,6 @@ export class WebviewPanel {
                                             </svg>
                                             <div class="database-name">${this.escapeHtml(db.name)}</div>
                                         </div>
-                                        <span class="badge">Expand</span>
                                     </div>
                                     <div class="tables-container">
                                         <div class="filter-wrapper">
@@ -204,710 +256,122 @@ export class WebviewPanel {
     }
 
     private generateFullHtml(databasesHtml: string): string {
+        const stylesUri = this.panel.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.extensionUri, 'src', 'webview', 'styles.css')
+        );
+        const scriptUri = this.panel.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.extensionUri, 'src', 'webview', 'main.js')
+        );
+
         return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MySQL Databases</title>
-    ${this.getStyles()}
-</head>
-<body>
-    <div class="container">
-        <h1>MySQL Databases</h1>
-        ${databasesHtml}
-    </div>
-    ${this.getScript()}
-</body>
-</html>`;
-    }
-
-    private getStyles(): string {
-        return `<style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            padding: 24px;
-            background: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 32px;
-            color: var(--vscode-foreground);
-            letter-spacing: -0.02em;
-        }
-
-        /* ==================== CONNECTION GROUP ==================== */
-        .connection-group {
-            background: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 8px;
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-
-        .connection-group.error {
-            border-color: var(--vscode-errorForeground);
-        }
-
-        .connection-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 20px 24px;
-            background: var(--vscode-sideBar-background);
-            border-bottom: 1px solid var(--vscode-panel-border);
-        }
-
-        .connection-icon {
-            width: 20px;
-            height: 20px;
-            color: var(--vscode-foreground);
-            flex-shrink: 0;
-            pointer-events: none;
-        }
-
-        .connection-icon.error-icon {
-            color: var(--vscode-errorForeground);
-        }
-
-        .connection-info h2 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 2px;
-            color: var(--vscode-foreground);
-        }
-
-        .connection-details {
-            font-size: 12px;
-            color: var(--vscode-descriptionForeground);
-            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-            letter-spacing: 0.01em;
-        }
-
-        .error-message {
-            color: var(--vscode-errorForeground);
-            font-size: 12px;
-        }
-
-        /* ==================== DATABASES LIST ==================== */
-        .databases-list {
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .database-item {
-            background: var(--vscode-sideBar-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 6px;
-            overflow: hidden;
-            transition: all 0.2s ease;
-        }
-
-        .database-item:hover {
-            border-color: var(--vscode-focusBorder);
-        }
-
-        .database-header-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.15s ease;
-        }
-
-        .database-header-row:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-
-        .database-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .expand-icon {
-            width: 14px;
-            height: 14px;
-            color: var(--vscode-descriptionForeground);
-            transition: transform 0.2s ease;
-            flex-shrink: 0;
-            pointer-events: none;
-        }
-
-        .database-item.expanded .expand-icon {
-            transform: rotate(90deg);
-        }
-
-        .database-icon {
-            width: 18px;
-            height: 18px;
-            color: var(--vscode-symbolIcon-classForeground);
-            flex-shrink: 0;
-            pointer-events: none;
-        }
-
-        .database-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--vscode-foreground);
-        }
-
-        .badge {
-            font-size: 10px;
-            padding: 4px 10px;
-            background: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-            border-radius: 10px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .database-item.expanded .badge {
-            display: none;
-        }
-
-        /* ==================== TABLES CONTAINER ==================== */
-        .tables-container {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .database-item.expanded .tables-container {
-            max-height: 600px;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        /* Filter */
-        .filter-wrapper {
-            padding: 16px;
-            border-bottom: 1px solid var(--vscode-panel-border);
-            background: var(--vscode-editor-background);
-            display: none;
-            position: relative;
-        }
-
-        .database-item.expanded .filter-wrapper {
-            display: block;
-        }
-
-        .search-icon {
-            width: 14px;
-            height: 14px;
-            color: var(--vscode-descriptionForeground);
-            position: absolute;
-            left: 28px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-        }
-
-        .table-filter {
-            width: 100%;
-            padding: 8px 12px 8px 36px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            font-size: 13px;
-            outline: none;
-            transition: border-color 0.15s ease;
-        }
-
-        .table-filter:focus {
-            border-color: var(--vscode-focusBorder);
-        }
-
-        .table-filter::placeholder {
-            color: var(--vscode-input-placeholderForeground);
-        }
-
-        /* Tables Grid */
-        .tables-grid {
-            padding: 16px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
-        }
-
-        /* ==================== TABLE CARD ==================== */
-        .table-card {
-            background: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 4px;
-            overflow: hidden;
-            transition: all 0.2s ease;
-        }
-
-        .table-card:hover {
-            border-color: var(--vscode-focusBorder);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .table-card.expanded {
-            grid-column: 1 / -1;
-        }
-
-        .table-card-header {
-            padding: 12px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.15s ease;
-        }
-
-        .table-card-header:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-
-        .table-card-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-
-        .table-expand-icon {
-            width: 12px;
-            height: 12px;
-            color: var(--vscode-descriptionForeground);
-            transition: transform 0.2s ease;
-            flex-shrink: 0;
-            pointer-events: none;
-        }
-
-        .table-card.expanded .table-expand-icon {
-            transform: rotate(90deg);
-        }
-
-        .table-icon {
-            width: 16px;
-            height: 16px;
-            color: var(--vscode-symbolIcon-fileForeground);
-            flex-shrink: 0;
-            pointer-events: none;
-        }
-
-        .table-name {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--vscode-foreground);
-        }
-
-        /* ==================== COLUMNS CONTAINER ==================== */
-        .columns-container {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
-            opacity: 0;
-        }
-
-        .table-card.expanded .columns-container {
-            max-height: 400px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            opacity: 1;
-        }
-
-        /* Custom Scrollbar */
-        .tables-container::-webkit-scrollbar,
-        .columns-container::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        .tables-container::-webkit-scrollbar-track,
-        .columns-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .tables-container::-webkit-scrollbar-thumb,
-        .columns-container::-webkit-scrollbar-thumb {
-            background: var(--vscode-scrollbarSlider-background);
-            border-radius: 4px;
-        }
-
-        .tables-container::-webkit-scrollbar-thumb:hover,
-        .columns-container::-webkit-scrollbar-thumb:hover {
-            background: var(--vscode-scrollbarSlider-hoverBackground);
-        }
-
-        /* Column Filter */
-        .column-filter-wrapper {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--vscode-panel-border);
-            background: var(--vscode-editor-background);
-            position: relative;
-        }
-
-        .column-filter-wrapper .search-icon {
-            left: 28px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .column-filter {
-            width: 100%;
-            padding: 6px 10px 6px 32px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            font-size: 12px;
-            outline: none;
-            transition: border-color 0.15s ease;
-        }
-
-        .column-filter:focus {
-            border-color: var(--vscode-focusBorder);
-        }
-
-        .column-filter::placeholder {
-            color: var(--vscode-input-placeholderForeground);
-        }
-
-        /* ==================== COLUMNS LIST ==================== */
-        .columns-list {
-            padding: 16px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 10px;
-        }
-
-        .column-item {
-            background: var(--vscode-sideBar-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 4px;
-            padding: 12px;
-            transition: all 0.15s ease;
-        }
-
-        .column-item:hover {
-            border-color: var(--vscode-focusBorder);
-            background: var(--vscode-list-hoverBackground);
-        }
-
-        .column-name {
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--vscode-symbolIcon-fieldForeground);
-            margin-bottom: 8px;
-            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-        }
-
-        .column-details {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 6px 12px;
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-        }
-
-        .column-label {
-            font-weight: 500;
-            color: var(--vscode-foreground);
-            opacity: 0.8;
-        }
-
-        .column-value {
-            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-            color: var(--vscode-descriptionForeground);
-        }
-
-        .column-value.key {
-            color: var(--vscode-symbolIcon-keywordForeground);
-            font-weight: 500;
-        }
-
-        .column-value.type {
-            color: var(--vscode-symbolIcon-typeForeground);
-        }
-
-        /* ==================== LOADING & EMPTY STATE ==================== */
-        .loading {
-            padding: 32px 16px;
-            text-align: center;
-            color: var(--vscode-descriptionForeground);
-            font-size: 13px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-        }
-
-        .empty-icon {
-            width: 48px;
-            height: 48px;
-            color: var(--vscode-descriptionForeground);
-            margin: 0 auto 20px;
-            opacity: 0.5;
-        }
-
-        .empty-state h2 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--vscode-foreground);
-        }
-
-        .empty-state p {
-            color: var(--vscode-descriptionForeground);
-            font-size: 14px;
-        }
-    </style>`;
-    }
-
-    private getScript(): string {
-        return `<script>
-        (function() {
-            const vscode = acquireVsCodeApi();
-            const loadedDatabases = new Map();
-            const loadedTables = new Map();
-
-            // Wait for DOM to be ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initializeEventListeners);
-            } else {
-                initializeEventListeners();
-            }
-
-            function initializeEventListeners() {
-                console.log('Initializing database expansion listeners...');
-                
-                // Database expansion
-                document.querySelectorAll('.database-item').forEach(item => {
-                    const header = item.querySelector('.database-header-row');
-                    
-                    if (!header) {
-                        console.error('No header found for database item:', item);
-                        return;
-                    }
-                    
-                    header.addEventListener('click', async () => {
-                        const connectionId = item.dataset.connectionId;
-                        const databaseName = item.dataset.databaseName;
-                        const isExpanded = item.classList.contains('expanded');
-
-                        console.log('Database clicked:', databaseName, 'Expanded:', isExpanded);
-
-                        if (isExpanded) {
-                            item.classList.remove('expanded');
-                        } else {
-                            item.classList.add('expanded');
+                <html lang="en">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource}; script-src ${this.panel.webview.cspSource};">
+                        <title>MySQL Databases</title>
+                        <link rel="stylesheet" href="${stylesUri}">
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header-bar">
+                                <h1>MySQL Databases</h1>
+                                <button class="settings-btn" id="settings-btn" title="Settings">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                                    </svg>
+                                </button>
+                            </div>
                             
-                            const key = connectionId + '::' + databaseName;
-                            if (!loadedDatabases.has(key)) {
-                                console.log('Loading tables for:', databaseName);
-                                vscode.postMessage({
-                                    command: 'getTables',
-                                    connectionId: connectionId,
-                                    databaseName: databaseName
-                                });
-                                loadedDatabases.set(key, true);
-                            }
-                        }
-                    });
-                });
-
-                console.log('Found', document.querySelectorAll('.database-item').length, 'database items');
-
-                // Event delegation for table filtering
-                document.addEventListener('input', (e) => {
-                    // Table filter
-                    if (e.target.classList.contains('table-filter')) {
-                        const filterValue = e.target.value.toLowerCase();
-                        const connectionId = e.target.dataset.connectionId;
-                        const databaseName = e.target.dataset.databaseName;
-                        
-                        const dbItem = document.querySelector(\`.database-item[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"]\`);
-                        if (dbItem) {
-                            const tables = dbItem.querySelectorAll('.table-card');
-                            tables.forEach(table => {
-                                const tableName = table.querySelector('.table-name').textContent.toLowerCase();
-                                if (tableName.includes(filterValue)) {
-                                    table.style.display = 'block';
-                                } else {
-                                    table.style.display = 'none';
-                                }
-                            });
-                        }
-                    }
-                    
-                    // Column filter
-                    if (e.target.classList.contains('column-filter')) {
-                        const filterValue = e.target.value.toLowerCase();
-                        const tableCard = e.target.closest('.table-card');
-                        if (tableCard) {
-                            const columns = tableCard.querySelectorAll('.column-item');
-                            columns.forEach(column => {
-                                const columnName = column.querySelector('.column-name').textContent.toLowerCase();
-                                if (columnName.includes(filterValue)) {
-                                    column.style.display = 'block';
-                                } else {
-                                    column.style.display = 'none';
-                                }
-                            });
-                        }
-                    }
-                });
-
-                // Event delegation for table card clicks
-                document.addEventListener('click', (e) => {
-                    const tableHeader = e.target.closest('.table-card-header');
-                    if (tableHeader) {
-                        const tableCard = tableHeader.closest('.table-card');
-                        const connectionId = tableCard.dataset.connectionId;
-                        const databaseName = tableCard.dataset.databaseName;
-                        const tableName = tableCard.dataset.tableName;
-                        const isExpanded = tableCard.classList.contains('expanded');
-
-                        if (isExpanded) {
-                            tableCard.classList.remove('expanded');
-                        } else {
-                            tableCard.classList.add('expanded');
-                            
-                            const key = connectionId + '::' + databaseName + '::' + tableName;
-                            if (!loadedTables.has(key)) {
-                                vscode.postMessage({
-                                    command: 'getColumns',
-                                    connectionId: connectionId,
-                                    databaseName: databaseName,
-                                    tableName: tableName
-                                });
-                                loadedTables.set(key, true);
-                            }
-                        }
-                    }
-                });
-
-                // Message handler
-                window.addEventListener('message', event => {
-                    const message = event.data;
-                    
-                    if (message.command === 'tablesData') {
-                        const { connectionId, databaseName, tables } = message;
-                        
-                        const dbItem = document.querySelector(\`.database-item[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"]\`);
-                        
-                        if (dbItem) {
-                            const container = dbItem.querySelector('.tables-container');
-                            const filterWrapper = container.querySelector('.filter-wrapper');
-                            
-                            if (tables.length === 0) {
-                                container.innerHTML = filterWrapper.outerHTML + '<div class="loading">No tables found</div>';
-                            } else {
-                                const tablesHtml = tables.map(table => \`
-                                    <div class="table-card" 
-                                         data-connection-id="\${connectionId}" 
-                                         data-database-name="\${databaseName}" 
-                                         data-table-name="\${table.name}">
-                                        <div class="table-card-header">
-                                            <div class="table-card-left">
-                                                <svg class="table-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <polyline points="9 18 15 12 9 6"/>
-                                                </svg>
-                                                <svg class="table-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                                    <line x1="3" y1="9" x2="21" y2="9"/>
-                                                    <line x1="9" y1="21" x2="9" y2="9"/>
-                                                </svg>
-                                                <div class="table-name">\${table.name}</div>
-                                            </div>
-                                        </div>
-                                        <div class="columns-container">
-                                            <div class="loading">Loading columns...</div>
-                                        </div>
-                                    </div>
-                                \`).join('');
-                                
-                                container.innerHTML = filterWrapper.outerHTML + '<div class="tables-grid">' + tablesHtml + '</div>';
-                            }
-                        }
-                    }
-                    
-                    if (message.command === 'columnsData') {
-                        const { connectionId, databaseName, tableName, columns } = message;
-                        
-                        const tableCard = document.querySelector(\`.table-card[data-connection-id="\${connectionId}"][data-database-name="\${databaseName}"][data-table-name="\${tableName}"]\`);
-                        
-                        if (tableCard) {
-                            const columnsContainer = tableCard.querySelector('.columns-container');
-                            
-                            if (columns.length === 0) {
-                                columnsContainer.innerHTML = '<div class="loading">No columns found</div>';
-                            } else {
-                                const columnsHtml = columns.map(col => \`
-                                    <div class="column-item">
-                                        <div class="column-name">\${col.name}</div>
-                                        <div class="column-details">
-                                            <span class="column-label">Type:</span>
-                                            <span class="column-value type">\${col.type}</span>
-                                            
-                                            <span class="column-label">Nullable:</span>
-                                            <span class="column-value">\${col.nullable}</span>
-                                            
-                                            <span class="column-label">Key:</span>
-                                            <span class="column-value key">\${col.key || '-'}</span>
-                                            
-                                            <span class="column-label">Default:</span>
-                                            <span class="column-value">\${col.default !== null ? col.default : 'NULL'}</span>
-                                            
-                                            <span class="column-label">Extra:</span>
-                                            <span class="column-value">\${col.extra || '-'}</span>
-                                        </div>
-                                    </div>
-                                \`).join('');
-                                
-                                columnsContainer.innerHTML = \`
-                                    <div class="column-filter-wrapper">
-                                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <path d="m21 21-4.35-4.35"/>
+                            <!-- Settings Panel -->
+                            <div class="settings-panel" id="settings-panel">
+                                <div class="settings-header">
+                                    <h3>View Settings</h3>
+                                    <button class="close-btn" id="close-settings">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"/>
+                                            <line x1="6" y1="6" x2="18" y2="18"/>
                                         </svg>
-                                        <input 
-                                            type="text" 
-                                            class="column-filter" 
-                                            placeholder="Filter columns..."
-                                        />
+                                    </button>
+                                </div>
+                                <div class="settings-content">
+                                    <div class="setting-group">
+                                        <label class="setting-label">Table View</label>
+                                        <div class="view-toggle">
+                                            <button class="view-btn active" data-view="grid">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="3" y="3" width="7" height="7"/>
+                                                    <rect x="14" y="3" width="7" height="7"/>
+                                                    <rect x="3" y="14" width="7" height="7"/>
+                                                    <rect x="14" y="14" width="7" height="7"/>
+                                                </svg>
+                                                Grid
+                                            </button>
+                                            <button class="view-btn" data-view="list">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <line x1="8" y1="6" x2="21" y2="6"/>
+                                                    <line x1="8" y1="12" x2="21" y2="12"/>
+                                                    <line x1="8" y1="18" x2="21" y2="18"/>
+                                                    <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                                    <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                                    <line x1="3" y1="18" x2="3.01" y2="18"/>
+                                                </svg>
+                                                List
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="columns-list">
-                                        \${columnsHtml}
+                                    <div class="setting-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="show-column-details" checked>
+                                            <span>Show column details</span>
+                                        </label>
+                                        <p class="setting-description">Display type, nullable, key, default and extra info for columns</p>
                                     </div>
-                                \`;
-                            }
-                        }
-                    }
-                });
-            }
-        })(); // Close IIFE
-    </script>`;
+                                </div>
+                            </div>
+                            
+                            ${databasesHtml}
+                        </div>
+                        
+                        <!-- Data Viewer Modal -->
+                        <div class="data-viewer-modal" id="data-viewer-modal">
+                            <div class="data-viewer-container">
+                                <div class="data-viewer-header">
+                                    <h2 id="data-viewer-title">Table Data</h2>
+                                    <button class="close-btn" id="close-data-viewer">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"/>
+                                            <line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="data-viewer-content" id="data-viewer-content">
+                                    <div class="loading">Loading data...</div>
+                                </div>
+                                <div class="data-viewer-footer">
+                                    <div class="pagination">
+                                        <button id="prev-page" class="pagination-btn" disabled>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="15 18 9 12 15 6"/>
+                                            </svg>
+                                            Previous
+                                        </button>
+                                        <span id="pagination-info">Page 1 of 1</span>
+                                        <button id="next-page" class="pagination-btn" disabled>
+                                            Next
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="9 18 15 12 9 6"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <script src="${scriptUri}"></script>
+                    </body>
+                </html>`;
     }
 
     private escapeHtml(text: string): string {

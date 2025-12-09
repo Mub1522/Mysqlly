@@ -2,7 +2,7 @@
   "name": "mysqlly",
   "displayName": "Mysqlly",
   "description": "Connect to MySQL databases and explore them in VS Code",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "Muuuub",
   "repository": {
     "type": "git",
@@ -12,7 +12,8 @@
     "vscode": "^1.80.0"
   },
   "categories": [
-    "Other"
+    "Data Science",
+    "Visualization"
   ],
   "icon": "assets/logo.jpeg",
   "activationEvents": [
