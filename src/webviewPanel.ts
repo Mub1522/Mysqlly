@@ -57,7 +57,7 @@ export class WebviewPanel {
             {
                 enableScripts: true,
                 retainContextWhenHidden: true,
-                localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'src', 'webview')]
+                localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'out', 'webview')]
             }
         );
 
@@ -257,10 +257,10 @@ export class WebviewPanel {
 
     private generateFullHtml(databasesHtml: string): string {
         const stylesUri = this.panel.webview.asWebviewUri(
-            vscode.Uri.joinPath(this.extensionUri, 'src', 'webview', 'styles.css')
+            vscode.Uri.joinPath(this.extensionUri, 'out', 'webview', 'styles.css')
         );
         const scriptUri = this.panel.webview.asWebviewUri(
-            vscode.Uri.joinPath(this.extensionUri, 'src', 'webview', 'main.js')
+            vscode.Uri.joinPath(this.extensionUri, 'out', 'webview', 'main.js')
         );
 
         return `<!DOCTYPE html>

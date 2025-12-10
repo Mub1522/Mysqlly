@@ -1,3 +1,10 @@
+## [0.0.4] - 2025-12-10
+
+### Fixed
+
+- **Webview styles**: 
+  - Fixed issue where webview styles were not being loaded correctly.
+
 ## [0.0.3] - 2025-12-09
 
 ### New Features

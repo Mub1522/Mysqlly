@@ -2,7 +2,7 @@
   "name": "mysqlly",
   "displayName": "Mysqlly",
   "description": "Connect to MySQL databases and explore them in VS Code",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "Muuuub",
   "repository": {
     "type": "git",
@@ -90,7 +90,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && cp -r src/webview out/",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts"
